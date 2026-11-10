@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory
 from flask_login import LoginManager, login_required
 from flask_migrate import Migrate
+from flask_wtf.csrf import CSRFProtect
 from models import User, Playlist, Songs, PlaylistSongs, Downloads, db
 from form import LoginForm, RegistrationForm
 from flask_login import login_user, logout_user
@@ -10,10 +11,12 @@ from flask_login import login_user, logout_user
 
 
 
+
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///project.db"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'secretkey'
+csrf = CSRFProtect(app)
 
 
 login_manager = LoginManager()
@@ -28,8 +31,13 @@ login_manager.init_app(app)
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.get(user_id)
+    return User.query.get(user_id)
 
+
+@app.route("/")
+@login_required
+def home():
+    return render_template("home.html")
 
 # @app.route(f"/search/<request>", methods=["GET"])
 # @login_required
@@ -92,22 +100,26 @@ def load_user(user_id):
 #     return redirect(url_for("home"))
 
 
-@app.route("/login", methods=["POST"])
+@app.route("/login", methods=["POST", "GET"])
 def login():
     form = LoginForm()
+
     if form.validate_on_submit():
         email = form.email.data
         password = form.password.data
         remember_me = form.remember_me.data
 
+
         user = User.query.filter_by(email=email).first()
         if user and user.check_password(password):
             login_user(user, remember=remember_me)
             return redirect(url_for("home"))
-    else:
+            
+            
+        print("Error it didnt work")
         return "Invalid credentials"
-    return render_template("login.html", form=form)
 
+    return render_template("login.html", form=form)
 
 @app.route("/logout")
 def logout():

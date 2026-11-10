@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{{ url_for('static', filename='loginStyle.css') }}">
     <title>Login</title>
     <style>
         
@@ -26,7 +25,9 @@
         <h1>Login</h1>
         <form  method="post">
             {{ form.csrf_token() }}
-            <p> {{ form.name.label}} {{ form.name() }}</p>
+
+            
+            <p> {{ form.email.label}} {{ form.email() }}</p>
             <p> {{ form.password.label}} {{ form.password() }}</p>
             <p> {{ form.remember_me.label}} {{ form.remember_me() }}</p>
             

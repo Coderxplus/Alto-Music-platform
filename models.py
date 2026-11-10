@@ -25,7 +25,7 @@ class User(UserMixin, db.Model):
     __tablename__ = "user_table"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    username: Mapped[str] = mapped_column(unique=True, nullable=False)
+    username: Mapped[str] = mapped_column(unique=True, nullable=False )
     email: Mapped[str] = mapped_column(unique=True, nullable=False)
     password: Mapped[str] = mapped_column(nullable=False)
 
@@ -70,7 +70,7 @@ class Playlist(db.Model):
 
     date_created: Mapped[datetime] = mapped_column(db.DateTime, default=datetime.utcnow)
 
-    user_id: Mapped[int] = mapped_column(ForeignKey("user_table.id"),nullable=False)
+    user_id: Mapped[int] = mapped_column(ForeignKey("user_table.id"),nullable=False, name="fk_playlist_user")
 
     user: Mapped["User"] = relationship(back_populates="playlists")
 
@@ -84,9 +84,9 @@ class PlaylistSongs(db.Model):
 
     position: Mapped[int] = mapped_column(nullable=False)
 
-    playlist_id: Mapped[int] = mapped_column(ForeignKey("playlist_table.id"), nullable=False)
+    playlist_id: Mapped[int] = mapped_column(ForeignKey("playlist_table.id"), nullable=False, name="fk_playlist_playlist")
 
-    song_id: Mapped[int] = mapped_column(ForeignKey("songs_table.id"),nullable=False)
+    song_id: Mapped[int] = mapped_column(ForeignKey("songs_table.id"),nullable=False, name="fk_playlist_song")
 
     playlist: Mapped["Playlist"] = relationship(back_populates="songs" )
 
@@ -98,9 +98,9 @@ class Downloads(db.Model):
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    song_id: Mapped[int] = mapped_column(ForeignKey("songs_table.id"), nullable=False)
+    song_id: Mapped[int] = mapped_column(ForeignKey("songs_table.id"), nullable=False, name="fk_playlist_song")
 
-    user_id: Mapped[int] = mapped_column(ForeignKey("user_table.id"),nullable=False)
+    user_id: Mapped[int] = mapped_column(ForeignKey("user_table.id"),nullable=False, name="fk_playlist_user")
 
     status: Mapped[Downloadstatus] = mapped_column(db.Enum(Downloadstatus), default=Downloadstatus.PENDING, nullable=False)
 
@@ -116,14 +116,12 @@ class ListeningHistory(db.Model):
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    song_id: Mapped[int] = mapped_column(ForeignKey("songs_table.id"),nullable=False)
+    song_id: Mapped[int] = mapped_column(ForeignKey("songs_table.id"),nullable=False, name="fk_playlist_song")
 
-    user_id: Mapped[int] = mapped_column(ForeignKey("user_table.id"), nullable=False)
+    user_id: Mapped[int] = mapped_column(ForeignKey("user_table.id"), nullable=False,  name="fk_playlist_user")
 
     played_at: Mapped[datetime] = mapped_column(db.DateTime,default=datetime.utcnow)
 
     user: Mapped["User"] = relationship( back_populates="listening_history")
 
-    song: Mapped["Songs"] = relationship(
-        back_populates="listening_history"
-    ) 
+    song: Mapped["Songs"] = relationship(back_populates="listening_history") 
