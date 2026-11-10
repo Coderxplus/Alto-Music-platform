@@ -1,152 +1,118 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import ForeignKey
+from flask_login import LoginManager, login_required
 from flask_migrate import Migrate
-from sqlalchemy.orm import DeclarativeBase, Mapped , mapped_column, relationship
-from datetime import datetime
-from service import search_song
-from typing import List
-import enum
-import requests
-import dotenv
-import os
+from models import User, Playlist, Songs, PlaylistSongs, Downloads, db
+from form import LoginForm, RegistrationForm
+from flask_login import login_user, logout_user
+# import dotenv
+# import os
 
 
 
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///project.db"
-# app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = 'secretkey'
 
 
-
-class Base(DeclarativeBase):
-    pass
-
-db = SQLAlchemy(model_class=Base)
+login_manager = LoginManager()
 migrate = Migrate(app, db)
 
+
 db.init_app(app)
+login_manager.login_view = "signin"
+
+login_manager.init_app(app)
 
 
+@login_manager.user_loader
+def load_user(user_id):
+    return User.get(user_id)
 
 
-class Downloadstatus(enum.Enum):
-    PENDING = "pending"
-    COMPLETED = "completed"
-    FAILED = "failed"
+# @app.route(f"/search/<request>", methods=["GET"])
+# @login_required
+# def search(request):
+#     # query = request.form["query"]
 
-class User(db.Model):
-    __tablename__ = "user_table"
+#     results = search_song(request)
+#     return render_template("home.html", results=results)
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    username: Mapped[str] = mapped_column()
-    password: Mapped[str] = mapped_column()
-    date_added = db.Column(db.DateTime, default=datetime.utcnow)
-    playlists: Mapped[List["Playlist"]] = relationship(back_populates="user")
-    downloads: Mapped[List["Downloads"]] = relationship(back_populates="user")
-    listening_history: Mapped[List["ListeningHistory"]] = relationship(back_populates="user")
+# @app.route("/playlist", methods=["POST"])
+# @login_required
+# def get_all_playlist(request):
+#     playlist = Playlist.query.all()
 
+#     return render_template("home.html", results=results)
 
-class Songs(db.Model):
-    __tablename__ = "songs_table"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    video_id: Mapped[str] = mapped_column()
-    title: Mapped[str] = mapped_column()
-    artist: Mapped[str] = mapped_column()
-    genre: Mapped[str] = mapped_column()
-    album: Mapped[str] = mapped_column()
-    thumbnail: Mapped[str] = mapped_column()
-    duration: Mapped[int] = mapped_column()
-    playlists: Mapped[List["PlaylistSongs"]] = relationship(back_populates="song")
-    
+# @app.route(f"/playlist/<request>", methods=["POST"]).
+# @login_required
+# def get_playlist(request):
+#     playlist = Playlist.query.filter_by(id=request).first_or_404()
 
 
-class Playlist(db.Model):
-    __tablename__ = "playlist_table"
+#     return render_template("view.html", password=playlist)
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column()
-    description: Mapped[str] = mapped_column()
-    date_created: Mapped[datetime] = mapped_column(db.DateTime, default=datetime.utcnow)
-    user_id: Mapped[int] = mapped_column(ForeignKey("user_table.id"), nullable=False)
-    user: Mapped["User"] = relationship(back_populates="playlists")
-    songs: Mapped[List["PlaylistSongs"]] = relationship(back_populates="playlist")
-    
+# @app.route("/create/playlist", methods=["POST"])
+# @login_required
+# def create_playlist():
+#     name = request.form["name"]
+#     description = request.form["description"]
 
-class PlaylistSongs(db.Model):
-    __tablename__ = "playlist_songs_table"
+#     playlist = Playlist(name=name, description=description)
+#     db.session.add(playlist)
+#     db.session.commit()
+#     return render_template("home.html", results=results)
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    position: Mapped[int] = mapped_column(nullable=False)
-    playlist_id: Mapped[int] = mapped_column(ForeignKey("playlist_table.id"), nullable=False)
-    song_id: Mapped[int] = mapped_column(ForeignKey("songs_table.id"), nullable=False)
-    playlist: Mapped["Playlist"] = relationship(back_populates="songs")
-    song: Mapped["Songs"] = relationship(back_populates="playlists")
-    
-
-class Downloads(db.Model):
-    __tablename__ = "downloads_table"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    song_id = db.relationship("Songs", backref="playlist_songs")
-    status = db.Column(
-        db.Enum(Downloadstatus),
-        default=Downloadstatus.PENDING, 
-        nullable=False
-    )
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    user: Mapped["User"] = relationship(back_populates="playlists")
-
-class ListeningHistory(db.Model):
-    __tablename__ = "listening_history_table"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    song_id = db.relationship("Songs", backref="playlist_songs")
-    played_at = db.Column(db.DateTime, default=datetime.utcnow)
-    user: Mapped["User"] = relationship(back_populates="playlists")
+# @app.route("/delete/playlist", methods=["POST"])
+# @login_required
+# def get_all_playlist(request):
+#     playlist = Playlist.query.filter_by(id=response, user_id=session.get("user_id")).first_or_404()
+#     db.session.delete(data)
+#     db.session.commit()
+#     return redirect(url_for("home"))
 
 
+# @app.route("/register", methods=["POST"])
+# def register():
+#     name = request.form.get("username")
+#     email = request.form.get("email")
+#     password = request.form.get("password")
 
-@app.route(f"/api/search/<request>", methods=["GET"])
-def search(request):
-    # query = request.form["query"]
+#     if User.query.filter_by(email=email).first():
+#         return "Email already registered"
+#     else:
+#         user = User(name=name, email=email)
+#         user.set_password(password)
+#         db.session.add(user)
+#         db.session.commit()
+#         login_user(user)
 
-    results = search_song(request)
-    return render_template("home.html", results=results)
-
-@app.route("/api/playlist", methods=["POST"])
-def get_all_playlist(request):
-    playlist = Playlist.query.all()
-
-    return render_template("home.html", results=results)
-
-@app.route(f"/api/playlist/<request>", methods=["POST"])
-def get_playlist(request):
-    playlist = Playlist.query.filter_by(id=request).first_or_404()
-
-
-    return render_template("view.html", password=playlist)
+#     return redirect(url_for("home"))
 
 
-@app.route("/api/create/playlist", methods=["POST"])
-def create_playlist():
-    name = request.form["name"]
-    description = request.form["description"]
+@app.route("/login", methods=["POST"])
+def login():
+    form = LoginForm()
+    if form.validate_on_submit():
+        email = form.email.data
+        password = form.password.data
+        remember_me = form.remember_me.data
 
-    playlist = Playlist(name=name, description=description)
-    db.session.add(playlist)
-    db.session.commit()
-    return render_template("home.html", results=results)
+        user = User.query.filter_by(email=email).first()
+        if user and user.check_password(password):
+            login_user(user, remember=remember_me)
+            return redirect(url_for("home"))
+    else:
+        return "Invalid credentials"
+    return render_template("login.html", form=form)
 
-@app.route("/api/delete/playlist", methods=["POST"])
-def get_all_playlist(request):
-    playlist = Playlist.query.filter_by(id=response, user_id=session.get("user_id")).first_or_404()
-    db.session.delete(data)
-    db.session.commit()
-    return redirect(url_for("home"))
 
-   
-    
+@app.route("/logout")
+def logout():
+    logout_user()
+    return redirect(url_for("login"))
 
 if __name__ == "__main__":
     app.run(debug=True)
