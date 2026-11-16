@@ -82,22 +82,29 @@ def home():
 #     return redirect(url_for("home"))
 
 
-# @app.route("/register", methods=["POST"])
-# def register():
-#     name = request.form.get("username")
-#     email = request.form.get("email")
-#     password = request.form.get("password")
+@app.route("/register", methods=["POST", "GET"])
+def register():
+    form = RegistrationForm()
+    
+    if form.validate_on_submit():
+        name = form.name.data
+        email = form.email.data
+        password = form.password.data
+        confirm_password = form.confirm_password.data
 
-#     if User.query.filter_by(email=email).first():
-#         return "Email already registered"
-#     else:
-#         user = User(name=name, email=email)
-#         user.set_password(password)
-#         db.session.add(user)
-#         db.session.commit()
-#         login_user(user)
+        if password == confirm_password:
+            if User.query.filter_by(email=email).first():
+                return "Email already registered"
+            else:
+                user = User(username=name, email=email, password=confirm_password)
+                user.set_password(password)
+                db.session.add(user)
+                db.session.commit()
+                login_user(user)
+        else:
+            return "Password not the same"
 
-#     return redirect(url_for("home"))
+    return render_template("register.html", form=form)
 
 
 @app.route("/login", methods=["POST", "GET"])
