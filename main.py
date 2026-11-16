@@ -5,6 +5,7 @@ from flask_wtf.csrf import CSRFProtect
 from models import User, Playlist, Songs, PlaylistSongs, Downloads, db
 from form import LoginForm, RegistrationForm
 from flask_login import login_user, logout_user
+from service import get_home
 # import dotenv
 # import os
 
@@ -24,7 +25,7 @@ migrate = Migrate(app, db)
 
 
 db.init_app(app)
-login_manager.login_view = "signin"
+login_manager.login_view = "login"
 
 login_manager.init_app(app)
 
@@ -37,7 +38,9 @@ def load_user(user_id):
 @app.route("/")
 @login_required
 def home():
-    return render_template("home.html")
+
+    home = get_home()
+    return render_template("home.html", home=home)
 
 # @app.route(f"/search/<request>", methods=["GET"])
 # @login_required
