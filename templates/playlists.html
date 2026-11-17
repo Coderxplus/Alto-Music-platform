@@ -1,0 +1,68 @@
+
+{% extends "index.html" %}
+
+{% block content %}
+
+<div class="playlist-container">
+
+    <div class="playlist-header">
+        <h1>Your Playlists</h1>
+        <p>Create and manage your music collections.</p>
+    </div>
+
+    <!-- Create Playlist -->
+    <div class="create-playlist">
+        <h3>Create a Playlist</h3>
+
+        <form method="POST" action="{{url_for("create_playlist")}}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <input type="text" name="name" placeholder="Enter playlist name"class="playlist-input" required>
+            <input name="description" type="textarea" placeholder="Enter playlist Description">
+            
+
+            <button type="submit" class="create-btn">Create playlist</button>
+        </form>
+    </div>
+
+    <!-- Display Playlists -->
+    <div class="playlist-section">
+        <h3>Your Collection</h3>
+
+        {% if playlists %}
+
+            <div class="playlist-grid">
+
+                {% for playlist in playlists %}
+
+                    <a href="#"
+                       class="playlist-card">
+
+                        <div class="playlist-icon">♫</div>
+
+                        <div class="playlist-info">
+                            <h4>{{ playlist.name }}</h4>
+                            <a href="/delete/playlist/{{playlist.id}}"> Delete Playlist</a>
+                            <p>Created {{ playlist.date_created.strftime('%d %b %Y') }}</p>
+                            
+                        </div>
+
+                    </a>
+
+                {% endfor %}
+
+            </div>
+
+        {% else %}
+
+            <div class="empty-playlist">
+                <h3>No playlists yet</h3>
+                <p>Create your first playlist to get started.</p>
+            </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+{% endblock %}

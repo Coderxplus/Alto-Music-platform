@@ -1,11 +1,11 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory
-from flask_login import LoginManager, login_required
+from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory,session
+from flask_login import LoginManager, login_required, current_user
 from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
 from models import User, Playlist, Songs, PlaylistSongs, Downloads, db
 from form import LoginForm, RegistrationForm
 from flask_login import login_user, logout_user
-from service import get_home
+from service import get_home, search_song
 # import dotenv
 # import os
 
@@ -15,7 +15,7 @@ from service import get_home
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///project.db"
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 app.config['SECRET_KEY'] = 'secretkey'
 csrf = CSRFProtect(app)
 
@@ -26,7 +26,6 @@ migrate = Migrate(app, db)
 
 db.init_app(app)
 login_manager.login_view = "login"
-
 login_manager.init_app(app)
 
 
@@ -39,50 +38,46 @@ def load_user(user_id):
 @login_required
 def home():
 
-    home = get_home()
-    return render_template("home.html", home=home)
+    results = get_home()
+    return render_template("home.html", results=results)
 
-# @app.route(f"/search/<request>", methods=["GET"])
-# @login_required
-# def search(request):
-#     # query = request.form["query"]
+@app.route(f"/search", methods=["GET", "POST"])
+@login_required
+def search():
+    query = request.form["query"]
 
-#     results = search_song(request)
-#     return render_template("home.html", results=results)
+    results = search_song(query)
 
-# @app.route("/playlist", methods=["POST"])
-# @login_required
-# def get_all_playlist(request):
-#     playlist = Playlist.query.all()
-
-#     return render_template("home.html", results=results)
-
-# @app.route(f"/playlist/<request>", methods=["POST"]).
-# @login_required
-# def get_playlist(request):
-#     playlist = Playlist.query.filter_by(id=request).first_or_404()
+    return render_template("home.html", results=results)
 
 
-#     return render_template("view.html", password=playlist)
+@app.route("/playlists", methods=["POST", "GET"])
+@login_required
+def get_playlists():
 
-# @app.route("/create/playlist", methods=["POST"])
-# @login_required
-# def create_playlist():
-#     name = request.form["name"]
-#     description = request.form["description"]
+    print(current_user.id)
+    playlists = Playlist.query.filter_by(user_id=current_user.id).all()
+    return render_template("playlists.html", playlists=playlists)
 
-#     playlist = Playlist(name=name, description=description)
-#     db.session.add(playlist)
-#     db.session.commit()
-#     return render_template("home.html", results=results)
+@app.route("/playlists/create", methods=["POST"])
+@login_required
+def create_playlist():
+    name = request.form["name"]
+    description = request.form["description"]
 
-# @app.route("/delete/playlist", methods=["POST"])
-# @login_required
-# def get_all_playlist(request):
-#     playlist = Playlist.query.filter_by(id=response, user_id=session.get("user_id")).first_or_404()
-#     db.session.delete(data)
-#     db.session.commit()
-#     return redirect(url_for("home"))
+    playlist = Playlist(name=name, description=description, user_id=current_user.id)
+    db.session.add(playlist)
+    db.session.commit()
+    return redirect(url_for("get_playlists"))
+
+
+@app.route("/delete/playlist/<request>", methods=["POST", "GET"])
+@login_required
+def delete_playlist(request):
+    playlist = Playlist.query.filter_by(id=request, user_id=current_user.id).first_or_404()
+    db.session.delete(playlist)
+    db.session.commit()
+    return redirect(url_for("get_playlists"))
 
 
 @app.route("/register", methods=["POST", "GET"])
